@@ -73,6 +73,9 @@
 #include "i2cdev.h"
 #include "autoconf.h"
 #include "vcp_esc_passthrough.h"
+#include "movementTask.h"
+#include "cameraTask.h"
+#include "moveCommand.h"
 #if CONFIG_ENABLE_CPX
   #include "cpxlink.h"
 #endif
@@ -120,7 +123,7 @@ void systemInit(void)
   debugInit();
   crtpInit();
   consoleInit();
-
+ 
   DEBUG_PRINT("----------------------------\n");
   DEBUG_PRINT("%s is up and running!\n", platformConfigGetDeviceTypeName());
 
@@ -293,6 +296,12 @@ void systemTask(void *arg)
   if(pass)
   {
     DEBUG_PRINT("Self test passed!\n");
+    
+    movementTaskInit();
+    QueueHandle_t queue = movementTaskGetQueueHandle();
+    cameraTaskInit(queue);
+    DEBUG_PRINT("✅ All tasks initialized\n");
+
     selftestPassed = 1;
     systemStart();
     soundSetEffect(SND_STARTUP);
