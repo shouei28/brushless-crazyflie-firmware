@@ -1,4 +1,6 @@
 
+PYTHON := /opt/anaconda3/bin/python3
+
 OPENOCD           ?= openocd
 OPENOCD_INTERFACE ?= interface/stlink-v2.cfg
 OPENOCD_TARGET    ?= target/stm32f4x.cfg
@@ -30,6 +32,11 @@ ARCH_CFLAGS += -fno-math-errno -DARM_MATH_CM4 -D__FPU_PRESENT=1 -mfp16-format=ie
 ARCH_CFLAGS += -Wno-array-bounds -Wno-stringop-overread
 ARCH_CFLAGS += -Wno-stringop-overflow
 ARCH_CFLAGS += -DSTM32F4XX -DSTM32F40_41xxx -DHSE_VALUE=8000000 -DUSE_STDPERIPH_DRIVER
+ccflags-y += -I/path/to/include
+ccflags-y += -Isrc
+ccflags-y += -I$(PROJECT_ROOT)/src/utils/interface
+ccflags-y += -I./src/utils/interface
+ccflags-y += -DDEBUG
 
 FREERTOS = $(srctree)/vendor/FreeRTOS
 PORT = $(FREERTOS)/portable/GCC/ARM_CM4F
@@ -74,7 +81,6 @@ objs-y += $(OOT)
 MEM_SIZE_FLASH_K = 1008
 MEM_SIZE_RAM_K = 128
 MEM_SIZE_CCM_K = 64
-
 
 #
 # Make sure Kbuild use our config that hinders some configs from being enabled
