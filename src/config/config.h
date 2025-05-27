@@ -68,6 +68,8 @@
 #define ADC_TASK_PRI              3
 #define FLOW_TASK_PRI             3
 #define MULTIRANGER_TASK_PRI      3
+#define MOVEMENT_TASK_PRI         5
+#define CAMERA_TASK_PRI           5
 #define SYSTEM_TASK_PRI           2
 #define CRTP_TX_TASK_PRI          2
 #define CRTP_RX_TASK_PRI          2
@@ -138,6 +140,8 @@
 #define PCA9685_TASK_NAME         "PCA9685"
 #define CMD_HIGH_LEVEL_TASK_NAME  "CMDHL"
 #define MULTIRANGER_TASK_NAME     "MR"
+#define MOVEMENT_TASK_NAME        "MOVEMENT"
+#define CAMERA_TASK_NAME          "CAMERA"
 #define BQ_OSD_TASK_NAME          "BQ_OSDTASK"
 #define GTGPS_DECK_TASK_NAME      "GTGPS"
 #define LIGHTHOUSE_TASK_NAME      "LH"
@@ -163,6 +167,8 @@
 
 
 //Task stack sizes
+#define MOVEMENT_TASK_STACKSIZE         configMINIMAL_STACK_SIZE
+#define CAMERA_TASK_STACKSIZE           (2* configMINIMAL_STACK_SIZE)
 #define SYSTEM_TASK_STACKSIZE           (2* configMINIMAL_STACK_SIZE)
 #define LEDSEQCMD_TASK_STACKSIZE        configMINIMAL_STACK_SIZE
 #define ADC_TASK_STACKSIZE              configMINIMAL_STACK_SIZE
@@ -212,6 +218,13 @@
 #define RADIO_CHANNEL 80
 #define RADIO_DATARATE RADIO_RATE_2M
 #define RADIO_ADDRESS 0xE7E7E7E7E7ULL
+
+/**
+ * \def PROPELLER_BALANCE_TEST_THRESHOLD
+ * This is the threshold for a propeller/motor to pass. It calculates the variance of the accelerometer X+Y
+ * when the propeller is spinning.
+ */
+#define PROPELLER_BALANCE_TEST_THRESHOLD  2.5f
 
 /**
  * \def BAT_LOADING_SAG_THRESHOLD
