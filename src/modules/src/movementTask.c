@@ -12,10 +12,46 @@
 #include <stdio.h>
 #include <string.h>
 #include "ledseq.h"
-#include "led.h"
 #include "supervisor.h"
 #include "motors.h"
+#include "stabilizer.h"
+#include "log.h"
+#include "estimator.h"
 
+#define LOG_FLOAT  7
+
+// Global variables to log
+float camera_vx = 0;
+float camera_vy = 0;
+float camera_vz = 0;
+float camera_yaw_rate = 0;
+float zHeight = 0.5f;
+
+// Register them for logging
+LOG_GROUP_START(camera_input)
+LOG_ADD(LOG_FLOAT, vx, &camera_vx)
+LOG_ADD(LOG_FLOAT, vy, &camera_vy)
+LOG_ADD(LOG_FLOAT, vz, &camera_vz)
+LOG_ADD(LOG_FLOAT, yaw_rate, &camera_yaw_rate)
+LOG_GROUP_STOP(camera_input)
+
+static void setHoverSetpoint(setpoint_t *setpoint, float vx, float vy, float z, float yawrate)
+{
+  setpoint->mode.z = modeAbs;
+  setpoint->position.z = z;
+
+
+  setpoint->mode.yaw = modeVelocity;
+  setpoint->attitudeRate.yaw = yawrate;
+
+
+  setpoint->mode.x = modeVelocity;
+  setpoint->mode.y = modeVelocity;
+  setpoint->velocity.x = vx;
+  setpoint->velocity.y = vy;
+
+  setpoint->velocity_body = true;
+}
 
 static QueueHandle_t movementCommandQueue;
 static void movementTask(void *param);
@@ -40,6 +76,8 @@ QueueHandle_t movementTaskGetQueueHandle(void) {
 
 static void movementTask(void *param) {
 
+    static setpoint_t setpoint;
+
     systemWaitStart();
     vTaskDelay(M2T(2000));  // Wait 2s for sensors to calibrate
     while (!supervisorCanArm()) {
@@ -53,34 +91,40 @@ static void movementTask(void *param) {
     }
     while (true) {
         MoveCommand cmd;
-        ledSet(LED_GREEN_L, 1);
-        vTaskDelay(pdMS_TO_TICKS(100));
-        ledSet(LED_GREEN_L, 0);
 
-        if (pdTRUE == xQueueReceive(movementCommandQueue, &cmd, portMAX_DELAY)) {
-            // Optional: blink LED for visibility
-            ledSet(LED_GREEN_L, 1);
-            vTaskDelay(pdMS_TO_TICKS(100));
-            ledSet(LED_GREEN_L, 0);
+        if (pdTRUE == xQueueReceive(movementCommandQueue, &cmd, portMAX_DELAY)) {  
+            if(!cmd.move) {
+                float height = zHeight;
+                while (height > 0.05f) {
+                    height -= 0.05f;
+                    setHoverSetpoint(&setpoint, 0.0f, 0.0f, height, 0.0f);     
+                    commanderSetSetpoint(&setpoint, 5);
+                    vTaskDelay(M2T(10));
+                }
+                for(int i = 0; i < 5; i++){
+                    height -= 0.01f;
+                    setHoverSetpoint(&setpoint, 0.0f, 0.0f, height, 0.0f);     
+                    commanderSetSetpoint(&setpoint, 5);
+                    vTaskDelay(M2T(100));
+                }
+            } else{        
+                // float xv = 0.2f;
+                // float yv = (float)cmd.vy / 1000.0f;
+                // float height = 0.3f + (float)cmd.vz / 1000.0f;;
+                // float yawrate = (float)cmd.yawRate * 2;
+                float yawrate = (float)cmd.yawRate;
 
-            // Build a local setpoint
-            setpoint_t mySetpoint = {0};
+                // ✅ Update the global log variables
+                // camera_vx = xv;
+                // camera_vy = yv;
+                // camera_vz = 0.5f;
+                camera_yaw_rate = yawrate;
 
-            // Set mode to velocity control
-            mySetpoint.mode.x = modeVelocity;
-            mySetpoint.mode.y = modeVelocity;
-            mySetpoint.mode.z = modeVelocity;
-            mySetpoint.mode.yaw = modeVelocity;
-
-            // Set velocity (converted to meters per second)
-            mySetpoint.velocity.x = (float)cmd.vx / 1000.0f;
-            mySetpoint.velocity.y = (float)cmd.vy / 1000.0f;
-            mySetpoint.velocity.z = (float)cmd.vz / 1000.0f;
-            mySetpoint.attitudeRate.yaw = (float)cmd.yawRate * (3.1415926f / 180.0f);
-            mySetpoint.thrust = 20000;
-            // Now send the setpoint to commander
-            commanderSetSetpoint(&mySetpoint, 5);
-            vTaskDelay(M2T(10));
+                // Now send the setpoint to commander
+                setHoverSetpoint(&setpoint, 0.35f, 0.0f, zHeight, yawrate);     
+                commanderSetSetpoint(&setpoint, 5);
+                vTaskDelay(M2T(10));
+            }
         }
 
     }
