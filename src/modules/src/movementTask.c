@@ -89,6 +89,24 @@ static void movementTask(void *param) {
     } else {
         DEBUG_PRINT("❌ Arming failed\n");
     }
+    float height = 0.0f;
+    while (height < zHeight) {
+        // increase gradually
+        setHoverSetpoint(&setpoint, 0.0f, 0.0f, height, 0.0f);     
+        commanderSetSetpoint(&setpoint, 5);
+        if(height == 0.0f){
+            vTaskDelay(M2T(500));
+        } else {
+            vTaskDelay(M2T(20));
+        }
+        height += 0.01f; 
+    }
+    // Hover for 0.5 seconds
+    for (int i = 0; i < 50; i++) { 
+        setHoverSetpoint(&setpoint, 0.0f, 0.0f, zHeight, 0.0f);
+        commanderSetSetpoint(&setpoint, 5);
+        vTaskDelay(M2T(10));
+    }
     while (true) {
         MoveCommand cmd;
 
@@ -108,18 +126,8 @@ static void movementTask(void *param) {
                     vTaskDelay(M2T(100));
                 }
             } else{        
-                // float xv = 0.2f;
-                // float yv = (float)cmd.vy / 1000.0f;
-                // float height = 0.3f + (float)cmd.vz / 1000.0f;;
-                // float yawrate = (float)cmd.yawRate * 2;
                 float yawrate = (float)cmd.yawRate;
-
-                // ✅ Update the global log variables
-                // camera_vx = xv;
-                // camera_vy = yv;
-                // camera_vz = 0.5f;
                 camera_yaw_rate = yawrate;
-
                 // Now send the setpoint to commander
                 setHoverSetpoint(&setpoint, 0.35f, 0.0f, zHeight, yawrate);     
                 commanderSetSetpoint(&setpoint, 5);
