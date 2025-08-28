@@ -131,6 +131,12 @@ static void movementTask(void *param) {
                 // Now send the setpoint to commander
                 setHoverSetpoint(&setpoint, 0.35f, 0.0f, zHeight, yawrate);     
                 commanderSetSetpoint(&setpoint, 5);
+                sensorsAcquire(&sensorData);
+                float actualYaw = sensorData.gyro.z;
+                uint8_t buf[5];
+                buf[0] = 'g';
+                memcpy(&buf[1], &actualYaw, sizeof(actualYaw));
+                uart2SendData(5, buf);
                 vTaskDelay(M2T(10));
             }
         }
